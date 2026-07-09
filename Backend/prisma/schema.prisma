@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  PENDING
+  ON_HOLD
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum HoldStatus {
+  ACTIVE
+  EXPIRED
+  RELEASED
+}
+
+enum DepositStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum ChangeOrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Client {
+  id String @id @default(uuid())
+
+  name  String
+  email String  @unique
+  phone String?
+
+  avatarInitials String
+  avatarColor    String?
+
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Hold {
+  id        String     @id @default(uuid())
+  bookingId String
+  booking   Booking    @relation(fields: [bookingId], references: [id])
+  reason    String
+  heldBy    String
+  expiresAt DateTime
+  status    HoldStatus @default(ACTIVE)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([expiresAt])
+}
+
+model DepositSchedule {
+  id        String        @id @default(uuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id])
+  amount    Decimal       @db.Decimal(12, 2)
+  dueDate   DateTime
+  paidDate  DateTime?
+  status    DepositStatus @default(PENDING)
+  method    String?
+  reference String?
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([dueDate, status])
+}
+
+model ChangeOrder {
+  id          String            @id @default(uuid())
+  bookingId   String
+  booking     Booking           @relation(fields: [bookingId], references: [id])
+  title       String
+  description String
+  amountDelta Decimal           @db.Decimal(12, 2)
+  requestedBy String
+  status      ChangeOrderStatus @default(PENDING)
+  approvedBy  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model BookingHandoff {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  handoffTo String
+  checklist Json
+  notes     String
+  handoffAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookingActivity {
+  id          String   @id @default(uuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  action      String
+  description String
+  performedBy String
+  status      String?
+  metadata    Json?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model Venue {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  city        String?
+  address     String?
+  capacity    Int?
+  type        String   @default("General")
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Booking {
+  id String @id @default(uuid())
+
+  bookingRef String @unique
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  eventTitle String
+
+  quotationId String?
+
+  venue     String
+  venueType String
+
+  startDate DateTime
+  endDate   DateTime
+
+  durationLabel String
+
+  status BookingStatus @default(PENDING)
+
+  revenue Decimal @db.Decimal(12, 2)
+
+  depositPaid Decimal @default(0) @db.Decimal(12, 2)
+
+  depositTotal Decimal @default(0) @db.Decimal(12, 2)
+
+  guestCount Int?
+
+  notes String?
+
+  assignedTo String?
+
+  confirmedAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  onHoldAt    DateTime?
+
+  holds        Hold[]
+  deposits     DepositSchedule[]
+  changeOrders ChangeOrder[]
+  handoff      BookingHandoff?
+  activities   BookingActivity[]
+  documents    BookingDocument[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([startDate])
+  @@index([status])
+}
+
+model BookingDocument {
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  name       String
+  mimeType   String?
+  size       Int?
+  path       String
+  uploadedBy String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([bookingId])
+}
+
+model User {
+  id           String @id @default(uuid())
+  name         String
+  email        String @unique
+  passwordHash String
+  role         String @default("SalesExecutive")
+
+  passwordReset PasswordReset?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

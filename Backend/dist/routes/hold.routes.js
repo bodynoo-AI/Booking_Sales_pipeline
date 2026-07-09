@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const hold_controller_1 = require("../controllers/hold.controller");
+const router = express_1.default.Router();
+router.get('/', hold_controller_1.listHolds);
+router.post('/', hold_controller_1.createHold);
+router.get('/deposits', hold_controller_1.listAllDeposits);
+router.patch('/deposits/:id', hold_controller_1.updateDeposit);
+router.get('/:bookingId/deposit-schedule', hold_controller_1.listDeposits);
+router.post('/:bookingId/deposit-schedule', hold_controller_1.createDeposit);
+router.get('/change-orders', hold_controller_1.listAllChangeOrders);
+router.patch('/change-orders/:id', hold_controller_1.updateChangeOrder);
+router.get('/:bookingId/change-orders', hold_controller_1.listChangeOrders);
+router.post('/:bookingId/change-orders', hold_controller_1.createChangeOrder);
+router.get('/handoffs', hold_controller_1.getAllHandoffs);
+router.get('/:bookingId/handoff', hold_controller_1.getBookingHandoff);
+router.post('/:bookingId/handoff', hold_controller_1.submitBookingHandoff);
+exports.default = router;
